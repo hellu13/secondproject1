@@ -1,10 +1,16 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from .models import Blog
+from django.core.paginator import Paginator
+from .models import Blog 
+from .forms import BlogPost
 
 def home(request):
     blogs = Blog.objects
-    return render(request, 'home.html', {'blogs':blogs})
+    blog_list = Blog.objects.all()
+    paginator = Paginator(blog_list, 3)
+    page = request.GET.get('page')
+    posts = paginator.get_page(page)
+    return render(request, 'home.html', {'blogs':blogs, 'posts': posts})
 
 def detail(request, blog_id):
     blog_detail = get_object_or_404(Blog, pk=blog_id)
@@ -26,3 +32,15 @@ def delete(request, blog_id):
     post = get_object_or_404(Blog, pk=blog_id)
     post.delete()
     return render(request, 'delete.html')
+
+def blogpost(request):
+    if request.method == 'POST':
+        form = BlogPost(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.pub_date = timezone.now()
+            post.save()
+            return redirect('home')
+    else:
+        form = BlogPost()
+        return render(request, 'new.html', {'form':form})
